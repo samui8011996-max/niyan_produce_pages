@@ -56,6 +56,7 @@ async function handle(DB, action, p) {
     case 'addOrder':        return addOrder(DB, p);
     case 'addOrderQty':     return addOrderQty(DB, p);
     case 'setOrderDone':    return setOrderDone(DB, p);
+    case 'setOrderHidden':  return setOrderHidden(DB, p);
     case 'purgeOrders':     return purgeOrders(DB, p);
     case 'addMakeLog':      return addLog(DB, 'mfg_records', '完成日期', '製作師傅', p);
     case 'addGrindLog':     return addLog(DB, 'grind_records', '研磨日期', '研磨人員', p);
@@ -94,6 +95,7 @@ async function getAll(DB) {
     note: o['備註'] || '',
     done: text2bool(o['已完成']),
     doneDate: o['完成日期'] || '',
+    hidden: text2bool(o['已隱藏']),
   }));
 
   const mapLog = (dateCol, personCol) => (r) => ({
@@ -147,6 +149,10 @@ async function setOrderDone(DB, p) {
   await DB.prepare('UPDATE orders SET "已完成"=?, "完成日期"=? WHERE "ID"=?')
     .bind(bool2text(p.done), p.done ? (p.doneDate || today()) : '', p.id).run();
   return { id: p.id };
+}
+async function setOrderHidden(DB, p) {
+  await DB.prepare('UPDATE orders SET "已隱藏"=? WHERE "ID"=?').bind(bool2text(p.hidden), p.id).run();
+  return { id: p.id, hidden: !!p.hidden };
 }
 async function purgeOrders(DB, p) {
   const ids = Array.isArray(p.ids) ? p.ids : [];

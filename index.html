@@ -2774,7 +2774,7 @@ function hydrateFromCache() {
     if (!raw) return false;
     const c = JSON.parse(raw);
     state._allOrders = c.orders || [];
-    applyLocalHidden();
+    applyHiddenFilter();
     state.makeLogs     = c.makeLogs  || [];
     state.washLogs     = c.washLogs  || [];
     state.grindLogs    = c.grindLogs || [];
@@ -2799,20 +2799,20 @@ async function loadAll() {
 
     state._allOrders = data.orders || [];
 
-    // 有訂單數量變多 → 視同追加：本機若曾隱藏過就自動恢復，並置頂顯示（跟新單一樣）
-    const hidden = getLocalHidden();
-    let hiddenChanged = false;
+    // 有訂單數量變多 → 視同追加：若原本是隱藏狀態就自動恢復（所有人同步），並置頂顯示（跟新單一樣）
     state._allOrders.forEach(o => {
       const prevQty = prevQtyMap.get(o.id);
       const curQty = Number(o.quantity) || 0;
       if (prevQty !== undefined && curQty > prevQty) {
-        if (hidden.has(o.id)) { hidden.delete(o.id); hiddenChanged = true; }
+        if (o.hidden) {
+          o.hidden = false;
+          api('setOrderHidden', { id: o.id, hidden: false }).catch(() => {});
+        }
         markTouched(o.id);
       }
     });
-    if (hiddenChanged) saveLocalHidden(hidden);
 
-    applyLocalHidden();
+    applyHiddenFilter();
     state.makeLogs = data.makeLogs || [];
     state.washLogs = data.washLogs || [];
     state.grindLogs = data.grindLogs || [];
@@ -3004,7 +3004,6 @@ function renderHistory() {
 
   // 確保 selection set 存在
   if (!state._selectedHistoryIds) state._selectedHistoryIds = new Set();
-  const localHidden = getLocalHidden();
 
   const searchEl = document.getElementById('history-search');
   const q = (searchEl?.value || '').trim().toLowerCase();
@@ -3072,7 +3071,7 @@ function renderHistory() {
         if (logs.length) doneDate = fmtDate(logs[0].date);
       }
     }
-    const isLocalHidden = localHidden.has(o.id);
+    const isLocalHidden = !!o.hidden;
 let status = '進行中', statusKey = 'is-ongoing';
 if (isLocalHidden) { status = '已隱藏'; statusKey = 'is-hidden'; }
     else if (isDone) { status = '已完成'; statusKey = 'is-done'; }
@@ -3926,12 +3925,12 @@ async function submitAppendQty() {
     addAppendLogEntry(orderId, delta, current, newQty);
     toast(`已追加 ${delta} 件，總數量變為 ${newQty} 件`);
 
-    // 若該訂單原本已被本機隱藏（打叉），追加後重新顯示並置頂
-    const hidden = getLocalHidden();
-    if (hidden.has(orderId)) {
-      hidden.delete(orderId);
-      saveLocalHidden(hidden);
-      applyLocalHidden();
+    // 若該訂單原本已被隱藏（打叉），追加後重新顯示並置頂（所有人同步）
+    if (o.hidden) {
+      o.hidden = false;
+      if (ao) ao.hidden = false;
+      await api('setOrderHidden', { id: orderId, hidden: false }).catch(() => {});
+      applyHiddenFilter();
     }
     markTouched(orderId);
 
@@ -4363,9 +4362,8 @@ function renderBatchRows() {
   const q = (document.getElementById('batch-filter')?.value || '').trim().toLowerCase();
 
   const all = (state._allOrders || state.orders).filter(o => !isDone_(o));
-  const hiddenSet = getLocalHidden();
-  const visible = all.filter(o => !hiddenSet.has(o.id));
-  const hidden  = all.filter(o => hiddenSet.has(o.id));
+  const visible = all.filter(o => !o.hidden);
+  const hidden  = all.filter(o => o.hidden);
   const orderedIds = orderedActiveIds_(visible);
   const visSorted = orderedIds.map(id => visible.find(o => o.id === id)).filter(Boolean);
   hidden.sort(defaultSortCompare_);
@@ -4387,7 +4385,7 @@ function renderBatchRows() {
     const { made, ground, washed } = getOrderProgress(o.id);
     const v = state.batchInput[o.id] || {};
     const scrapOpen = (state.batchScrapOpen && state.batchScrapOpen.has(o.id)) || (v.scrap || 0) > 0;
-    const isHidden = hiddenSet.has(o.id);
+    const isHidden = !!o.hidden;
    const dot = (o.color && COLOR_HEX[o.color])
       ? `<span class="hl-dot" style="background:${COLOR_HEX[o.color]};width:11px;height:11px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,0.2);margin-right:3px;vertical-align:middle;"></span>` : '';
     const bits = [];
@@ -4840,44 +4838,36 @@ async function bnSubmit() {
   btn.disabled = false;
   btn.textContent = '建立全部訂單';
 }
-function hideOrderFromCard(id) {
-  const set = getLocalHidden();
-  set.add(id);
-  saveLocalHidden(set);
-  applyLocalHidden();
-  renderBoard();
-  renderHistory();
-  toast('已隱藏（僅本機）');
-}
-function restoreOrder(id) {
-  const set = getLocalHidden();
-  set.delete(id);
-  saveLocalHidden(set);
-  applyLocalHidden();
-  renderHistory();
-  renderBoard();
-  toast('已恢復顯示（僅本機）');
-}
-
-const LOCAL_HIDDEN_KEY = 'niyan_hidden_ids';
-
-function getLocalHidden() {
+async function hideOrderFromCard(id) {
   try {
-    const raw = localStorage.getItem(LOCAL_HIDDEN_KEY);
-    return new Set(raw ? JSON.parse(raw) : []);
-  } catch { return new Set(); }
+    await api('setOrderHidden', { id, hidden: true });
+    const o = (state._allOrders || []).find(x => x.id === id);
+    if (o) o.hidden = true;
+    applyHiddenFilter();
+    renderBoard();
+    renderHistory();
+    toast('已隱藏（所有人同步）');
+  } catch (err) {
+    toast('隱藏失敗：' + err.message, 'error');
+  }
 }
-
-function saveLocalHidden(set) {
+async function restoreOrder(id) {
   try {
-    localStorage.setItem(LOCAL_HIDDEN_KEY, JSON.stringify([...set]));
-  } catch {}
+    await api('setOrderHidden', { id, hidden: false });
+    const o = (state._allOrders || []).find(x => x.id === id);
+    if (o) o.hidden = false;
+    applyHiddenFilter();
+    renderHistory();
+    renderBoard();
+    toast('已恢復顯示（所有人同步）');
+  } catch (err) {
+    toast('恢復失敗：' + err.message, 'error');
+  }
 }
 
-// 依「本機隱藏清單」重算看板要顯示的訂單(隱藏純本機、不同步)
-function applyLocalHidden() {
-  const hidden = getLocalHidden();
-  state.orders = (state._allOrders || []).filter(o => !hidden.has(o.id));
+// 依伺服器同步下來的「已隱藏」欄位重算看板要顯示的訂單(所有人共用)
+function applyHiddenFilter() {
+  state.orders = (state._allOrders || []).filter(o => !o.hidden);
 }
 
 
