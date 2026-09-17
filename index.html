@@ -2356,28 +2356,6 @@
   <div class="settings-wrap">
 
     <div class="settings-card">
-      <h2>API CONNECTION · 連線設定</h2>
-      <p class="desc">
-        貼上 Apps Script 部署網址，按「測試並儲存」即連線到試算表。
-      </p>
-
-      <div class="field" style="margin-bottom: 16px;">
-        <label>Apps Script 網址 <span class="req">*</span></label>
-        <div class="api-input-row" style="margin-bottom: 8px;">
-          <input type="url" id="s-api-url" placeholder="https://script.google.com/macros/s/.../exec">
-          <button type="button" class="btn btn-primary" onclick="testAndSaveApi()">測試並儲存</button>
-        </div>
-      </div>
-
-      <div class="api-input-row">
-        <button type="button" class="btn btn-danger" onclick="clearLocalData()">清除</button>
-        <button type="button" class="btn btn-secondary" onclick="reloadData()">立即同步</button>
-      </div>
-
-      <div class="test-result" id="api-test-result"></div>
-    </div>
-
-    <div class="settings-card">
       <h2>SOUND · 音效</h2>
       <p class="desc">
         看板偵測到新訂單時會播放音效。<br>
@@ -2403,8 +2381,7 @@
       </p>
 
    <p class="desc">
-        匯出 Excel 報表。<br>
-        下載前需輸入密碼。
+        匯出 Excel 報表。
       </p>
 
       <button type="button" class="btn btn-primary" onclick="exportExcelReport()" style="width:100%;">⬇ 下載 Excel 報表</button>
@@ -2478,14 +2455,10 @@
    設定 - API_URL 從 localStorage 讀取
    （可在「設定」頁設定）
 ================================================ */
-const API_URL_KEY = 'niyan_api_url';
 const SHEET_URL_KEY = 'niyan_sheet_url';
 const DEFAULT_API_URL = '/api';
 function getApiUrl() {
   return DEFAULT_API_URL;
-}
-function setApiUrl(url) {
-  try { localStorage.setItem(API_URL_KEY, url || ''); } catch {}
 }
 function getSheetUrl() {
   try { return localStorage.getItem(SHEET_URL_KEY) || ''; }
@@ -2690,14 +2663,6 @@ function setConnStatus(ok, label) {
     dot.classList.add('off');
     status.textContent = label || 'OFFLINE';
   }
-}
-function clearLocalData() {
-  setApiUrl('');                                   // 只清掉 Apps Script 網址
-  const input = document.getElementById('s-api-url');
-  if (input) input.value = '';
-  setConnStatus(false, 'NOT CONFIGURED');
-  document.getElementById('api-test-result')?.classList.remove('show');
-  toast('已清除連線網址');
 }
 function updateLastSync() {
   const d = new Date();
@@ -4880,10 +4845,6 @@ function getGasCode() {
 }
 
 function renderSettingsPage() {
-  const apiInput = document.getElementById('s-api-url');
-  if (apiInput) apiInput.value = getApiUrl();
-  document.getElementById('api-test-result').classList.remove('show');
-
   // 音量滑桿
   const volSlider = document.getElementById('volume-slider');
   const volValue = document.getElementById('volume-value');
@@ -4905,13 +4866,8 @@ function renderSettingsPage() {
 /* ================================================
    匯出 Excel 報表（需密碼，預設 8888）
 ================================================ */
-const EXPORT_PWD = '8888';   // 下載密碼（寫死，不可於前台變更）
-
 function exportExcelReport() {
   if (typeof XLSX === 'undefined') return toast('Excel 元件尚未載入，請檢查網路後重試', 'error');
-  const input = prompt('請輸入下載密碼：');
-  if (input === null) return;
-  if (input.trim() !== EXPORT_PWD) return toast('密碼錯誤', 'error');
   try { buildAndDownloadWorkbook(); }
   catch (err) { toast('匯出失敗：' + err.message, 'error'); }
 }
@@ -4965,65 +4921,6 @@ function buildAndDownloadWorkbook() {
 
   XLSX.writeFile(wb, `泥研製所_製造報表_${today().replace(/-/g, '')}.xlsx`);
   toast('報表已下載');
-}
-
-async function testAndSaveApi() {
-  const input = document.getElementById('s-api-url');
-  const result = document.getElementById('api-test-result');
-  let url = (input.value || '').trim();
-  if (!url) {
-    result.className = 'test-result fail show';
-    result.textContent = '✗ 請先貼上 Apps Script 網址';
-    return;
-  }
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(url)) {
-    result.className = 'test-result fail show';
-    result.innerHTML = '✗ 網址格式不對，應該是<br><code style="color:var(--teal-2)">https://script.google.com/macros/s/.../exec</code>';
-    return;
-  }
-
-  result.className = 'test-result running show';
-  result.textContent = '> 測試連線中...';
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getAll' }),
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || '回應錯誤');
-
-    setApiUrl(url);
-    const d = data.data || {};
-    result.className = 'test-result ok show';
-    result.innerHTML = `
-      ✓ 連線成功！設定已儲存<br>
-      > 訂單：${(d.orders || []).length} 筆<br>
-      > 製造紀錄：${(d.makeLogs || []).length} 筆<br>
-      > 清洗紀錄：${(d.washLogs || []).length} 筆<br>
-      > 自訂廠商：${(d.customVendors || []).length} ｜ 品項：${(d.customItems || []).length} ｜ 款式：${(d.customStyles || []).length}
-    `;
-    toast('連線成功，已儲存設定');
-    setConnStatus(true);
-    updateLastSync();
-    await loadAll();
-  } catch (err) {
-    result.className = 'test-result fail show';
-    result.innerHTML = `
-      ✗ 連線失敗：${escapeHtml(String(err.message || err))}<br>
-      <br>
-      <span style="color: var(--text-dim);">常見原因：</span><br>
-      <span style="color: var(--text-dim);">• 部署時權限沒選「所有人」</span><br>
-      <span style="color: var(--text-dim);">• 還沒授權（要點過「進階」→「前往」→「允許」）</span><br>
-      <span style="color: var(--text-dim);">• 網址結尾不是 /exec</span>
-    `;
-  }
-}
-
-async function reloadData() {
-  toast('同步中...');
-  await loadAll();
-  toast('同步完成');
 }
 
 async function manualRefresh() {
