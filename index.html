@@ -2348,6 +2348,33 @@
     <div class="history-cards" id="history-cards"></div>
 
     <div class="history-pagination" id="history-pagination"></div>
+
+    <div class="board-toolbar" style="margin-top:42px;">
+      <div class="section-label">
+        LOGS · 製造紀錄
+        <span class="count" id="loglist-count">0 筆</span>
+      </div>
+      <input type="text" id="loglist-search" placeholder="搜尋…（人員、品項、流程）" class="history-search-input" oninput="state._logPage = 0; renderLogList()">
+    </div>
+
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>人員</th>
+            <th>流程</th>
+            <th>品項</th>
+            <th>顏色</th>
+            <th class="num">數量</th>
+            <th class="num">報廢</th>
+          </tr>
+        </thead>
+        <tbody id="loglist-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="history-pagination" id="loglist-pagination"></div>
   </div>
 </section>
 
@@ -3131,6 +3158,7 @@ enriched.map(({ o, made, ground, washed, scrap, isDone, doneDate, status, status
 
   renderHistoryPagination(totalPages);
   updateBatchBar();
+  renderLogList();
 }
 
 function renderHistoryPagination(totalPages) {
@@ -3148,6 +3176,90 @@ function renderHistoryPagination(totalPages) {
 function goHistoryPage(p) {
   state._historyPage = p;
   renderHistory();
+}
+
+/* ====== 製造紀錄清單（製造/研磨/清洗合併，歷史頁下方 + Excel 共用）====== */
+const STAGE_SORT = { 製造: 0, 研磨: 1, 清洗: 2 };
+
+function buildLogRows() {
+  const orderById = {};
+  (state._allOrders || state.orders || []).forEach(o => { orderById[o.id] = o; });
+  const row = (l, stage) => {
+    const o = orderById[l.orderId] || {};
+    return {
+      '日期': fmtDate(l.date),
+      '人員': l.person || '（未填）',
+      '流程': stage,
+      '品項': o.item || '（訂單已刪除）',
+      '顏色': o.color || '',
+      '數量': Number(l.quantity || 0),
+      '報廢': Number(l.scrap || 0),
+    };
+  };
+  return [
+    ...(state.makeLogs || []).map(l => row(l, '製造')),
+    ...(state.grindLogs || []).map(l => row(l, '研磨')),
+    ...(state.washLogs || []).map(l => row(l, '清洗')),
+  ];
+}
+
+const LOG_PAGE_SIZE = 20;
+
+function renderLogList() {
+  const tbody = document.getElementById('loglist-tbody');
+  if (!tbody) return;
+
+  const q = (document.getElementById('loglist-search')?.value || '').trim().toLowerCase();
+  let rows = buildLogRows().sort((a, b) =>
+    b.日期.localeCompare(a.日期) ||
+    STAGE_SORT[a.流程] - STAGE_SORT[b.流程] ||
+    a.人員.localeCompare(b.人員, 'zh-Hant')
+  );
+  if (q) {
+    rows = rows.filter(r => [r.人員, r.流程, r.品項, r.顏色, r.日期]
+      .some(v => String(v).toLowerCase().includes(q)));
+  }
+
+  const countEl = document.getElementById('loglist-count');
+  if (countEl) countEl.textContent = `${rows.length} 筆`;
+
+  if (state._logPage === undefined || state._logPage === null) state._logPage = 0;
+  const totalPages = Math.max(1, Math.ceil(rows.length / LOG_PAGE_SIZE));
+  if (state._logPage >= totalPages) state._logPage = totalPages - 1;
+  if (state._logPage < 0) state._logPage = 0;
+  const pageItems = rows.slice(state._logPage * LOG_PAGE_SIZE, state._logPage * LOG_PAGE_SIZE + LOG_PAGE_SIZE);
+
+  const STAGE_COLOR = { 製造: 'var(--teal-2)', 研磨: 'var(--ground)', 清洗: 'var(--warn)' };
+  if (pageItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">// ${q ? '無符合的紀錄' : '尚無紀錄'}</td></tr>`;
+  } else {
+    tbody.innerHTML = pageItems.map(r => {
+      const dot = COLOR_HEX[r.顏色] ? `<span class="color-dot" style="background:${COLOR_HEX[r.顏色]}"></span>` : '';
+      return `
+        <tr>
+          <td>${escapeHtml(r.日期)}</td>
+          <td>${escapeHtml(r.人員)}</td>
+          <td><span style="color:${STAGE_COLOR[r.流程]};font-weight:700;">${r.流程}</span></td>
+          <td>${escapeHtml(r.品項)}</td>
+          <td>${r.顏色 ? `<span class="color-cell">${dot}${escapeHtml(r.顏色)}</span>` : '-'}</td>
+          <td class="num">${r.數量}</td>
+          <td class="num">${r.報廢 > 0 ? `<span style="color:var(--urgent)">${r.報廢}</span>` : '-'}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  const pager = document.getElementById('loglist-pagination');
+  if (pager) {
+    pager.innerHTML = totalPages <= 1 ? '' : `
+      <button type="button" class="btn btn-secondary" ${state._logPage <= 0 ? 'disabled' : ''} onclick="goLogPage(${state._logPage - 1})">上一頁</button>
+      <span class="history-page-info">第 ${state._logPage + 1} / ${totalPages} 頁</span>
+      <button type="button" class="btn btn-secondary" ${state._logPage >= totalPages - 1 ? 'disabled' : ''} onclick="goLogPage(${state._logPage + 1})">下一頁</button>`;
+  }
+}
+
+function goLogPage(p) {
+  state._logPage = p;
+  renderLogList();
 }
 
 function toggleHistorySelect(id, checked) {
@@ -4874,7 +4986,6 @@ function exportExcelReport() {
 
 function buildAndDownloadWorkbook() {
   const orders = state._allOrders || state.orders || [];
-  const makeLogs = state.makeLogs || [], grindLogs = state.grindLogs || [], washLogs = state.washLogs || [];
   const wb = XLSX.utils.book_new();
   const sheet = (rows, name) =>
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ '（無資料）': '' }]), name);
@@ -4893,31 +5004,13 @@ function buildAndDownloadWorkbook() {
     return { '品項': k, ...a, '報廢率(%)': a.已製造 > 0 ? Math.round(a.報廢 / a.已製造 * 100) : 0 };
   }).sort((a, b) => b.訂購總量 - a.訂購總量), '品項統計');
 
-  // 2. 人員產能（平均每日＝只算有登記的工作日）
-  const pAgg = {};
-  const addP = (person, stage, date, qty, scrap) => {
-    const k = person || '（未填）';
-    if (!pAgg[k]) pAgg[k] = { 製造: 0, 研磨: 0, 清洗: 0, 報廢: 0, _days: new Set() };
-    pAgg[k][stage] += Number(qty || 0);
-    pAgg[k].報廢 += Number(scrap || 0);
-    const d = fmtDate(date);
-    if (d) pAgg[k]._days.add(d);   // 同一天多筆只算一個工作日
-  };
-  makeLogs.forEach(l => addP(l.person, '製造', l.date, l.quantity, l.scrap));
-  grindLogs.forEach(l => addP(l.person, '研磨', l.date, l.quantity, l.scrap));
-  washLogs.forEach(l => addP(l.person, '清洗', l.date, l.quantity, l.scrap));
-  sheet(Object.keys(pAgg).map(k => {
-    const a = pAgg[k];
-    const total = a.製造 + a.研磨 + a.清洗;
-    const days = a._days.size;
-    return {
-      '人員': k,
-      '製造': a.製造, '研磨': a.研磨, '清洗': a.清洗, '報廢': a.報廢,
-      '總處理量': total,
-      '工作天數': days,
-      '平均每日產量': days > 0 ? Math.round(total / days * 10) / 10 : 0,
-    };
-  }).sort((a, b) => b.總處理量 - a.總處理量), '人員產能');
+  // 2. 製造紀錄（製造/研磨/清洗三種流程合併，按日期由舊到新排）
+  sheet(buildLogRows().sort((a, b) =>
+    a.日期.localeCompare(b.日期) ||
+    STAGE_SORT[a.流程] - STAGE_SORT[b.流程] ||
+    a.人員.localeCompare(b.人員, 'zh-Hant') ||
+    a.品項.localeCompare(b.品項, 'zh-Hant')
+  ), '製造紀錄');
 
   XLSX.writeFile(wb, `泥研製所_製造報表_${today().replace(/-/g, '')}.xlsx`);
   toast('報表已下載');
