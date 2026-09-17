@@ -16,25 +16,103 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
+    --accent-rgb: 0, 212, 200;
+    --accent2-rgb: 0, 255, 225;
+    --urgent-rgb: 255, 45, 85;
+    --warn-rgb: 255, 182, 41;
+    --done-rgb: 45, 255, 172;
+    --ground-rgb: 179, 136, 255;
+    --gold-rgb: 255, 214, 144;
+    --shadow-rgb: 2, 19, 26;
+    --surface-rgb: 2, 19, 26;
+    --on-accent: #02131a;
+    --gold: #ffd690;
+    --urgent-soft: #ff8aa5;
+    --urgent-card-bg: linear-gradient(135deg, #2a0814 0%, #420a1a 50%, #2a0814 100%);
     --bg-0: #02131a;
     --bg-1: #04222d;
     --bg-2: #062f3e;
     --teal-0: #0a3d4a;
     --teal-1: #00d4c8;
     --teal-2: #00ffe1;
-    --teal-glow: rgba(0, 255, 225, 0.35);
+    --teal-glow: rgba(var(--accent2-rgb), 0.35);
     --text: #d5fffb;
     --text-dim: #6b9aa3;
     --text-mute: #3d6670;
     --urgent: #ff2d55;
-    --urgent-glow: rgba(255, 45, 85, 0.55);
+    --urgent-glow: rgba(var(--urgent-rgb), 0.55);
     --done: #2dffac;
-    --done-glow: rgba(45, 255, 172, 0.4);
+    --done-glow: rgba(var(--done-rgb), 0.4);
     --warn: #ffb629;
-    --line: rgba(0, 212, 200, 0.18);
-    --line-strong: rgba(0, 212, 200, 0.45);
+    --line: rgba(var(--accent-rgb), 0.18);
+    --line-strong: rgba(var(--accent-rgb), 0.45);
     --ground: #b388ff;
+    --page-glow-1: rgba(var(--accent-rgb), 0.12);
+    --page-glow-2: rgba(var(--accent2-rgb), 0.08);
   }
+
+  /* ===== 白天模式（Sage / Charcoal / Oatmeal）===== */
+  body.light-mode {
+    --accent-rgb: 107, 115, 85;      /* sage */
+    --accent2-rgb: 74, 81, 58;       /* deep sage */
+    --urgent-rgb: 176, 58, 74;
+    --warn-rgb: 166, 124, 0;
+    --done-rgb: 47, 125, 90;
+    --ground-rgb: 111, 82, 152;
+    --gold-rgb: 160, 124, 48;
+    --shadow-rgb: 60, 56, 45;
+    --surface-rgb: 226, 216, 191;
+    --on-accent: #fbf8ef;
+    --gold: #8a6a24;
+    --urgent-soft: #a8394a;
+    --urgent-card-bg: linear-gradient(135deg, #f2ddd8 0%, #ecd0ca 50%, #f2ddd8 100%);
+    --bg-0: #eae1cc;                 /* oatmeal */
+    --bg-1: #f5efdf;
+    --bg-2: #ded3b8;
+    --teal-0: #c3c7ac;
+    --teal-1: #6b7355;               /* sage */
+    --teal-2: #4a513a;               /* deep sage（文字用，對米色要有對比）*/
+    --teal-glow: rgba(var(--accent-rgb), 0.30);
+    --text: #2e2e2b;                 /* charcoal */
+    --text-dim: #6b6659;
+    --text-mute: #9a9484;
+    --urgent: #b03a4a;
+    --urgent-glow: rgba(var(--urgent-rgb), 0.35);
+    --done: #2f7d5a;
+    --done-glow: rgba(var(--done-rgb), 0.3);
+    --warn: #a67c00;
+    --line: rgba(var(--accent-rgb), 0.24);
+    --line-strong: rgba(var(--accent-rgb), 0.5);
+    --ground: #6f5298;
+    --page-glow-1: rgba(var(--accent-rgb), 0.10);
+    --page-glow-2: rgba(160, 124, 48, 0.08);
+  }
+
+  .theme-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .theme-btn {
+    flex: 1; min-width: 150px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    padding: 12px 16px;
+    font-size: 13px; font-weight: 700; letter-spacing: 2px;
+    font-family: inherit;
+    border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  }
+  .theme-btn:hover { border-color: var(--teal-1); color: var(--text); }
+  .theme-btn.active {
+    border-color: var(--teal-1);
+    color: var(--teal-2);
+    box-shadow: 0 0 0 2px var(--teal-glow);
+  }
+  .theme-swatch {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    flex-shrink: 0;
+  }
+  .theme-swatch.dark { background: linear-gradient(135deg, #04222d 0%, #00d4c8 100%); }
+  .theme-swatch.light { background: linear-gradient(135deg, #6b7355 0%, #eae1cc 100%); }
 .qty-append-box {
     background: var(--bg-0);
     border: 1px solid var(--line);
@@ -72,7 +150,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     color: var(--text-dim);
-    border-bottom: 1px dashed rgba(0, 212, 200, 0.08);
+    border-bottom: 1px dashed rgba(var(--accent-rgb), 0.08);
   }
   .qty-append-log .append-log-row .amt { color: var(--teal-2); font-weight: 700; }
   .qty-append-log .append-log-empty {
@@ -94,7 +172,7 @@
   }
   .qty-append-row input[type=number]:focus {
     border-color: var(--teal-1);
-    box-shadow: 0 0 0 2px rgba(0, 212, 200, 0.15);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
   }
   .qty-append-btn { flex-shrink: 0; padding: 10px 24px !important; letter-spacing: 3px !important; }
   * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
@@ -106,8 +184,8 @@
     font-weight: 500;
     overflow-x: hidden;
     background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(0, 212, 200, 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, rgba(0, 255, 225, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 0%, var(--page-glow-1) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, var(--page-glow-2) 0%, transparent 50%),
       linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
     background-attachment: fixed;
     /* 避免 mobile browser 網址列遮擋底部內容 */
@@ -124,8 +202,8 @@
     background-image:
       repeating-linear-gradient(
         0deg,
-        rgba(0, 255, 225, 0.025) 0px,
-        rgba(0, 255, 225, 0.025) 1px,
+        rgba(var(--accent2-rgb), 0.025) 0px,
+        rgba(var(--accent2-rgb), 0.025) 1px,
         transparent 1px,
         transparent 3px
       );
@@ -138,7 +216,7 @@
     position: sticky; top: 0;
     z-index: 100;
     padding: 18px 32px;
-    background: linear-gradient(180deg, rgba(2,19,26,0.95), rgba(2,19,26,0.7));
+    background: linear-gradient(180deg, rgba(var(--surface-rgb),0.95), rgba(var(--surface-rgb),0.7));
     border-bottom: 1px solid var(--line);
     backdrop-filter: blur(12px);
     display: flex; justify-content: space-between; align-items: center;
@@ -226,7 +304,7 @@
     position: fixed; top: 16px; right: 16px;
     z-index: 150;
     width: 40px; height: 40px;
-    background: rgba(2, 19, 26, 0.85);
+    background: rgba(var(--surface-rgb), 0.85);
     border: 1px solid var(--line-strong);
     color: var(--teal-2);
     border-radius: 50%;
@@ -384,7 +462,7 @@
   .card-act-btn {
     width: 28px;
     height: 28px;
-    background: rgba(0, 212, 200, 0.08);
+    background: rgba(var(--accent-rgb), 0.08);
     border: 1px solid var(--line);
     color: var(--teal-2);
     border-radius: 4px;
@@ -435,9 +513,9 @@
   }
   /* 急單樣式 */
   .card.urgent .card-act-btn:not(.hide-btn) {
-    color: #ffd690;
-    background: rgba(255, 214, 144, 0.08);
-    border-color: rgba(255, 214, 144, 0.25);
+    color: var(--gold);
+    background: rgba(var(--gold-rgb), 0.08);
+    border-color: rgba(var(--gold-rgb), 0.25);
   }
   .card.urgent .card-act-btn:not(.hide-btn):hover:not(:disabled) {
     background: var(--warn);
@@ -453,13 +531,13 @@
   .card:hover {
     transform: translateY(-2px);
     border-color: var(--line-strong);
-    box-shadow: 0 8px 32px rgba(0, 212, 200, 0.15);
+    box-shadow: 0 8px 32px rgba(var(--accent-rgb), 0.15);
   }
 
   .card.urgent {
-    background: linear-gradient(135deg, #2a0814 0%, #420a1a 50%, #2a0814 100%);
+    background: var(--urgent-card-bg);
     border-color: var(--urgent);
-    box-shadow: 0 0 24px rgba(255, 45, 85, 0.25), inset 0 0 40px rgba(255, 45, 85, 0.08);
+    box-shadow: 0 0 24px rgba(var(--urgent-rgb), 0.25), inset 0 0 40px rgba(var(--urgent-rgb), 0.08);
     animation: urgent-pulse 2.4s ease-in-out infinite;
   }
   .card.urgent::before {
@@ -469,8 +547,8 @@
     background-size: 200% 100%;
   }
   @keyframes urgent-pulse {
-    0%, 100% { box-shadow: 0 0 24px rgba(255, 45, 85, 0.25), inset 0 0 40px rgba(255, 45, 85, 0.08); }
-    50%      { box-shadow: 0 0 36px rgba(255, 45, 85, 0.45), inset 0 0 60px rgba(255, 45, 85, 0.15); }
+    0%, 100% { box-shadow: 0 0 24px rgba(var(--urgent-rgb), 0.25), inset 0 0 40px rgba(var(--urgent-rgb), 0.08); }
+    50%      { box-shadow: 0 0 36px rgba(var(--urgent-rgb), 0.45), inset 0 0 60px rgba(var(--urgent-rgb), 0.15); }
   }
   @keyframes urgent-bar {
     from { background-position: 200% 0; }
@@ -491,7 +569,7 @@
     color: var(--text-dim);
     letter-spacing: 1px;
   }
-  .card.urgent .card-top { color: #ffb6c5; }
+  .card.urgent .card-top { color: var(--urgent-soft); }
   .card-top .dates { display: flex; gap: 8px; align-items: center; }
   .card-top .arrow { color: var(--teal-2); }
   .card.urgent .card-top .arrow { color: var(--urgent); }
@@ -538,8 +616,8 @@
     letter-spacing: 1px;
   }
   .card.urgent .item-style {
-    color: #ffd690;
-    border-color: #ffd690;
+    color: var(--gold);
+    border-color: var(--gold);
   }
   .note-line {
     margin-top: 8px;
@@ -547,7 +625,7 @@
     color: var(--text-dim);
     line-height: 1.5;
     padding: 6px 10px;
-    background: rgba(0, 212, 200, 0.05);
+    background: rgba(var(--accent-rgb), 0.05);
     border-left: 2px solid var(--line-strong);
     border-radius: 2px;
   }
@@ -568,7 +646,7 @@
     font-size: 22px;
     margin: 0 2px;
   }
-  .card.urgent .item-color { color: #ff8aa5; }
+  .card.urgent .item-color { color: var(--urgent-soft); }
 
   .qty-row {
     display: flex; align-items: baseline; gap: 16px;
@@ -576,7 +654,7 @@
     padding-top: 12px;
     border-top: 1px dashed var(--line);
   }
-  .card.urgent .qty-row { border-top-color: rgba(255, 45, 85, 0.3); }
+  .card.urgent .qty-row { border-top-color: rgba(var(--urgent-rgb), 0.3); }
 
   /* 三段式數字：已清洗 / 已製造 / 訂單總數 */
   .qty-block-main {
@@ -586,7 +664,7 @@
     line-height: 1;
     letter-spacing: 1px;
     color: var(--text);
-    text-shadow: 0 0 20px rgba(0, 255, 225, 0.3);
+    text-shadow: 0 0 20px rgba(var(--accent2-rgb), 0.3);
     white-space: nowrap;
   }
   .qty-block-main .washed { color: var(--warn); }       /* 已清洗：黃 */
@@ -640,12 +718,12 @@
     line-height: 1;
     letter-spacing: 1px;
     color: var(--text);
-    text-shadow: 0 0 20px rgba(0, 255, 225, 0.3);
+    text-shadow: 0 0 20px rgba(var(--accent2-rgb), 0.3);
   }
   .qty-display .made { color: var(--teal-2); }
   .qty-display .slash { color: var(--text-mute); margin: 0 4px; font-weight: 500; }
   .qty-display .total { color: var(--text); }
-  .card.urgent .qty-display .made { color: #ff8aa5; }
+  .card.urgent .qty-display .made { color: var(--urgent-soft); }
   .card.urgent .qty-display { text-shadow: 0 0 20px var(--urgent-glow); }
 
   .qty-meta {
@@ -763,7 +841,7 @@
   .chip.qty-add:hover {
     border-color: var(--teal-1);
     color: var(--teal-2);
-    background: rgba(0, 212, 200, 0.08);
+    background: rgba(var(--accent-rgb), 0.08);
   }
   .chip.qty-clear {
     color: var(--text-mute);
@@ -804,7 +882,7 @@
   }
   .field input:focus, .field select:focus, .field textarea:focus {
     border-color: var(--teal-1);
-    box-shadow: 0 0 0 2px rgba(0, 212, 200, 0.15);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
   }
   input[type=date] { color-scheme: dark; }
   /* 下單時的初始進度區 */
@@ -866,7 +944,7 @@
     justify-content: center;
     width: 18px; height: 18px;
     border-radius: 50%;
-    background: rgba(255, 45, 85, 0.15);
+    background: rgba(var(--urgent-rgb), 0.15);
     color: var(--urgent);
     font-size: 10px;
     font-weight: 900;
@@ -971,7 +1049,7 @@
   }
   .btn-primary {
     background: var(--teal-1);
-    color: var(--bg-0);
+    color: var(--on-accent);
     box-shadow: 0 0 16px var(--teal-glow);
   }
   .btn-primary:hover {
@@ -1005,7 +1083,7 @@
   .chip.add-new.is-loading {
     color: var(--warn) !important;
     border-color: var(--warn) !important;
-    --pulse-color: rgba(255, 182, 41, 0.4);
+    --pulse-color: rgba(var(--warn-rgb), 0.4);
   }
   /* 刪除中：醒目紅 */
   .chip.is-loading:not(.add-new),
@@ -1019,7 +1097,7 @@
   /* Modal */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(2, 19, 26, 0.85);
+    background: rgba(var(--shadow-rgb), 0.85);
     backdrop-filter: blur(6px);
     z-index: 200;
     display: none;
@@ -1036,7 +1114,7 @@
     max-width: 560px;
     width: 100%;
     padding: 32px;
-    box-shadow: 0 0 60px rgba(0, 212, 200, 0.3);
+    box-shadow: 0 0 60px rgba(var(--accent-rgb), 0.3);
     position: relative;
     max-height: calc(100dvh - 40px);
     overflow-y: auto;
@@ -1063,7 +1141,7 @@
   .modal-note {
     margin-top: 10px;
     padding: 8px 12px;
-    background: rgba(0, 212, 200, 0.06);
+    background: rgba(var(--accent-rgb), 0.06);
     border-left: 2px solid var(--teal-1);
     color: var(--text);
     font-size: 13px;
@@ -1110,12 +1188,12 @@
   .modal .tab-row button#tab-wash.active {
     background: var(--warn);
     color: var(--bg-0);
-    box-shadow: 0 0 16px rgba(255, 182, 41, 0.4);
+    box-shadow: 0 0 16px rgba(var(--warn-rgb), 0.4);
   }
   .modal .tab-row button#tab-grind.active {
     background: var(--ground);
     color: var(--bg-0);
-    box-shadow: 0 0 16px rgba(179, 136, 255, 0.4);
+    box-shadow: 0 0 16px rgba(var(--ground-rgb), 0.4);
   }
   .log-list {
     margin-top: 20px;
@@ -1130,7 +1208,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     color: var(--text-dim);
-    border-bottom: 1px dashed rgba(0, 212, 200, 0.08);
+    border-bottom: 1px dashed rgba(var(--accent-rgb), 0.08);
   }
   .log-list .log-row .del-log-btn {
   background: none;
@@ -1170,7 +1248,7 @@
 
   /* Config notice */
   .config-notice {
-    background: linear-gradient(135deg, rgba(255, 182, 41, 0.1), rgba(255, 182, 41, 0.05));
+    background: linear-gradient(135deg, rgba(var(--warn-rgb), 0.1), rgba(var(--warn-rgb), 0.05));
     border: 1px solid var(--warn);
     border-radius: 6px;
     padding: 20px 26px;
@@ -1237,7 +1315,7 @@
       margin-top: 0;
       flex-wrap: wrap;
     }
-    .card.urgent .card-qty-block { border-top-color: rgba(255, 45, 85, 0.3); }
+    .card.urgent .card-qty-block { border-top-color: rgba(var(--urgent-rgb), 0.3); }
     .qty-block-main { font-size: 28px; }
     .qty-block-legend { font-size: 10px; gap: 8px; }
     .qty-block-sub { margin-top: 0; font-size: 14px; }
@@ -1339,7 +1417,7 @@
   }
   .history-search-input:focus {
     border-color: var(--teal-1);
-    box-shadow: 0 0 0 2px rgba(0, 212, 200, 0.15);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
   }
   .history-table-wrap {
     background: var(--bg-1);
@@ -1385,7 +1463,7 @@
   .history-table td {
     padding: 11px 14px;
     color: var(--text);
-    border-bottom: 1px dashed rgba(0, 212, 200, 0.08);
+    border-bottom: 1px dashed rgba(var(--accent-rgb), 0.08);
     white-space: nowrap;
   }
   .history-table td.num {
@@ -1397,7 +1475,7 @@
     transition: background 0.15s;
   }
   .history-table tbody tr:hover {
-    background: rgba(0, 212, 200, 0.04);
+    background: rgba(var(--accent-rgb), 0.04);
   }
   .history-table tr.is-done td.status { color: var(--done); font-weight: 700; }
   .history-table tr.is-urgent td.status { color: var(--urgent); font-weight: 700; }
@@ -1427,7 +1505,7 @@
     text-align: center;
   }
   .history-table tbody tr.selected {
-    background: rgba(255, 45, 85, 0.08);
+    background: rgba(var(--urgent-rgb), 0.08);
   }
   input[type=checkbox].niyan-check {
     width: 18px;
@@ -1444,7 +1522,7 @@
     gap: 12px;
     margin-bottom: 14px;
     padding: 12px 16px;
-    background: rgba(255, 45, 85, 0.08);
+    background: rgba(var(--urgent-rgb), 0.08);
     border: 1px solid var(--urgent);
     border-radius: 4px;
     flex-wrap: wrap;
@@ -1493,11 +1571,11 @@
     z-index: 2;
   }
   .hlist-row {
-    border-bottom: 1px dashed rgba(0, 212, 200, 0.1);
+    border-bottom: 1px dashed rgba(var(--accent-rgb), 0.1);
     font-size: 13px;
   }
   .hlist-row:last-child { border-bottom: none; }
-  .hlist-row.selected { background: rgba(255, 45, 85, 0.08); }
+  .hlist-row.selected { background: rgba(var(--urgent-rgb), 0.08); }
   .hlist-row.is-hidden { opacity: 0.55; }
 
   .hl-chk { display: flex; align-items: center; justify-content: center; }
@@ -1696,7 +1774,7 @@
   }
   .api-input-row input:focus {
     border-color: var(--teal-1);
-    box-shadow: 0 0 0 2px rgba(0, 212, 200, 0.15);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
   }
   .test-result {
     padding: 14px 18px;
@@ -1709,17 +1787,17 @@
   }
   .test-result.show { display: block; }
   .test-result.ok {
-    background: rgba(45, 255, 172, 0.08);
+    background: rgba(var(--done-rgb), 0.08);
     border: 1px solid var(--done);
     color: var(--done);
   }
   .test-result.fail {
-    background: rgba(255, 45, 85, 0.08);
+    background: rgba(var(--urgent-rgb), 0.08);
     border: 1px solid var(--urgent);
-    color: #ff8aa5;
+    color: var(--urgent-soft);
   }
   .test-result.running {
-    background: rgba(0, 212, 200, 0.05);
+    background: rgba(var(--accent-rgb), 0.05);
     border: 1px solid var(--line-strong);
     color: var(--teal-2);
   }
@@ -1783,7 +1861,7 @@
   }
 
   .danger-zone {
-    border-color: rgba(255, 45, 85, 0.3);
+    border-color: rgba(var(--urgent-rgb), 0.3);
   }
   .danger-zone h2 { color: var(--urgent); }
   .danger-zone::before {
@@ -1831,7 +1909,7 @@
   .pending-urgent { background: var(--urgent); color: #fff; font-size: 11px; font-weight: 900; padding: 1px 7px; border-radius: 2px; }
   .pending-del {
     flex-shrink: 0; width: 26px; height: 26px; border-radius: 4px;
-    background: rgba(255,45,85,0.1); border: 1px solid var(--line);
+    background: rgba(var(--urgent-rgb),0.1); border: 1px solid var(--line);
     color: var(--text-mute); cursor: pointer; font-weight: 900; line-height: 1;
   }
   .pending-del:hover { background: var(--urgent); color: #fff; border-color: var(--urgent); }
@@ -1867,7 +1945,7 @@
     color: var(--teal-2); letter-spacing: 4px; flex: 1;
   }
   .batch-close {
-    width: 30px; height: 30px; background: rgba(0,212,200,0.08);
+    width: 30px; height: 30px; background: rgba(var(--accent-rgb),0.08);
     border: 1px solid var(--line); color: var(--teal-2);
     border-radius: 4px; cursor: pointer; font-weight: 900; line-height: 1;
   }
@@ -1924,7 +2002,7 @@
     padding: 7px 4px; font-size: 16px; text-align: center;
     font-family: 'Orbitron', sans-serif; font-weight: 700; border-radius: 4px; outline: none;
   }
-  .batch-row-inputs input:focus { border-color: var(--teal-1); box-shadow: 0 0 0 2px rgba(0,212,200,0.15); }
+  .batch-row-inputs input:focus { border-color: var(--teal-1); box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.15); }
   .batch-actions { display: flex; align-items: center; gap: 16px; justify-content: flex-end; }
   .batch-summary {
     flex: 1; font-family: 'JetBrains Mono', monospace;
@@ -1962,7 +2040,7 @@
   .batch-new {
     background: var(--bg-0); border: 1px solid var(--teal-1);
     border-radius: 4px; margin-bottom: 14px; overflow: hidden;
-    box-shadow: 0 0 12px rgba(0,212,200,0.15);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb),0.15);
   }
   .batch-new-toggle {
     padding: 14px 16px; cursor: pointer; user-select: none;
@@ -1987,7 +2065,7 @@
   .batch-new input[type=number] { font-family: 'Orbitron', sans-serif; font-weight: 700; text-align: center; letter-spacing: 1px; }
   .batch-new input[type=date] { color-scheme: dark; }
   .batch-new input:focus, .batch-new select:focus, .batch-new textarea:focus {
-    border-color: var(--teal-1); box-shadow: 0 0 0 2px rgba(0,212,200,0.15);
+    border-color: var(--teal-1); box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.15);
   }
   .batch-new textarea { resize: vertical; min-height: 40px; line-height: 1.5; }
   .batch-new .item-select-row { display: flex; gap: 8px; align-items: center; }
@@ -2028,6 +2106,12 @@
 </style>
 </head>
 <body class="page-board-active">
+<script>
+  // 在畫面繪製前套用主題，避免白天模式使用者看到一閃而過的深色
+  try {
+    if (localStorage.getItem('niyan_theme') === 'light') document.body.classList.add('light-mode');
+  } catch (e) {}
+</script>
 
 <header>
   <div class="brand">
@@ -2383,6 +2467,21 @@
   <div class="settings-wrap">
 
     <div class="settings-card">
+      <h2>THEME · 顯示模式</h2>
+      <p class="desc">
+        預設為深色模式。覺得畫面太暗可以切換成白天模式，設定只會記在這台裝置上。
+      </p>
+      <div class="theme-row">
+        <button type="button" class="theme-btn" id="theme-btn-dark" onclick="setTheme('dark')">
+          <span class="theme-swatch dark"></span>深色模式
+        </button>
+        <button type="button" class="theme-btn" id="theme-btn-light" onclick="setTheme('light')">
+          <span class="theme-swatch light"></span>白天模式
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-card">
       <h2>SOUND · 音效</h2>
       <p class="desc">
         看板偵測到新訂單時會播放音效。<br>
@@ -2484,6 +2583,24 @@
 ================================================ */
 const SHEET_URL_KEY = 'niyan_sheet_url';
 const DEFAULT_API_URL = '/api';
+
+/* ====== 顯示模式（深色 / 白天），只存這台裝置 ====== */
+const THEME_KEY = 'niyan_theme';
+function getTheme() {
+  try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'; }
+  catch { return 'dark'; }
+}
+function setTheme(mode) {
+  const light = mode === 'light';
+  document.body.classList.toggle('light-mode', light);
+  try { localStorage.setItem(THEME_KEY, light ? 'light' : 'dark'); } catch {}
+  syncThemeButtons();
+}
+function syncThemeButtons() {
+  const t = getTheme();
+  document.getElementById('theme-btn-dark')?.classList.toggle('active', t === 'dark');
+  document.getElementById('theme-btn-light')?.classList.toggle('active', t === 'light');
+}
 function getApiUrl() {
   return DEFAULT_API_URL;
 }
@@ -4957,6 +5074,8 @@ function getGasCode() {
 }
 
 function renderSettingsPage() {
+  syncThemeButtons();
+
   // 音量滑桿
   const volSlider = document.getElementById('volume-slider');
   const volValue = document.getElementById('volume-value');
@@ -5079,7 +5198,9 @@ function setPage(page) {
   if (page !== 'settings' && state._lastPage !== page) {
     state._lastPage = (document.body.classList.contains('page-settings-active') ? state._lastPage : page);
   }
-  document.body.className = `page-${page}-active`;
+  // 只切換 page-* class，保留 light-mode / fullscreen-mode 等其他狀態
+  ['board', 'input', 'history', 'settings'].forEach(p =>
+    document.body.classList.toggle(`page-${p}-active`, p === page));
   document.getElementById('nav-board').classList.toggle('active', page === 'board');
   document.getElementById('nav-input').classList.toggle('active', page === 'input');
   document.getElementById('nav-history').classList.toggle('active', page === 'history');
