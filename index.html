@@ -446,6 +446,7 @@
   .card-qty-block {
     display: flex; flex-direction: column; align-items: flex-end;
     gap: 4px;
+    min-width: 0;   /* grid 子項預設不會收縮，不設會讓長數字撐破卡片 */
   }
 
   /* 卡片右側功能按鈕組（排序箭頭 + 隱藏訂單） */
@@ -3094,7 +3095,38 @@ function renderBoard() {
     const canDown = isActive && activeIdx < activeFinal.length - 1;
     return renderCard(o, { canUp, canDown });
   }).join('') || '<div class="empty">// 尚無訂單</div>';
+
+  fitQtyNumbers();
 }
+
+// 數字太多位時（例如 1500/1538/1527/1524/27）在窄螢幕會超出卡片，
+// 量測後等比例縮到塞得下為止
+function fitQtyNumbers() {
+  const MIN = 13;
+  document.querySelectorAll('.qty-block-main').forEach(el => {
+    const avail = el.parentElement?.clientWidth || 0;
+    el.style.fontSize = '';
+    if (!avail || el.scrollWidth <= avail) return;
+    // 先用比例估一次，再逐步微調（字距與斜線 margin 是固定 px，不隨字級等比例縮）
+    const base = parseFloat(getComputedStyle(el).fontSize) || 28;
+    let size = Math.max(MIN, Math.floor(base * avail / el.scrollWidth));
+    el.style.fontSize = size + 'px';
+    let guard = 0;
+    while (el.scrollWidth > avail && size > MIN && guard++ < 12) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+    }
+  });
+}
+
+// Orbitron 是非同步載入的，字型就緒後寬度會變，要重算一次
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitQtyNumbers);
+
+let _fitTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_fitTimer);
+  _fitTimer = setTimeout(fitQtyNumbers, 150);
+});
 
 // 上/下移：交換兩張卡的位置，並寫回後端
 
