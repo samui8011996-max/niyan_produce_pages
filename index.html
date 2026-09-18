@@ -26,6 +26,7 @@
     --shadow-rgb: 2, 19, 26;
     --surface-rgb: 2, 19, 26;
     --on-accent: #02131a;
+    --scheme: dark;
     --gold: #ffd690;
     --urgent-soft: #ff8aa5;
     --urgent-card-bg: linear-gradient(135deg, #2a0814 0%, #420a1a 50%, #2a0814 100%);
@@ -63,6 +64,7 @@
     --shadow-rgb: 60, 56, 45;
     --surface-rgb: 226, 216, 191;
     --on-accent: #fbf8ef;
+    --scheme: light;
     --gold: #8a6a24;
     --urgent-soft: #a8394a;
     --urgent-card-bg: linear-gradient(135deg, #f2ddd8 0%, #ecd0ca 50%, #f2ddd8 100%);
@@ -180,6 +182,7 @@
   body {
     background: var(--bg-0);
     color: var(--text);
+    color-scheme: var(--scheme);
     font-family: 'Noto Sans TC', -apple-system, sans-serif;
     font-weight: 500;
     overflow-x: hidden;
@@ -885,7 +888,7 @@
     border-color: var(--teal-1);
     box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
   }
-  input[type=date] { color-scheme: dark; }
+  input[type=date] { color-scheme: var(--scheme); }
   /* 下單時的初始進度區 */
 
   .init-toggle {
@@ -1959,7 +1962,7 @@
   .batch-field > label { font-size: 12px; letter-spacing: 3px; color: var(--text-dim); font-weight: 700; }
   .batch-field input[type=date] {
     background: var(--bg-0); border: 1px solid var(--line); color: var(--text);
-    padding: 10px 14px; font-size: 16px; border-radius: 4px; outline: none; color-scheme: dark;
+    padding: 10px 14px; font-size: 16px; border-radius: 4px; outline: none; color-scheme: var(--scheme);
     width: 100%; min-width: 0;
   }
   #batch-person-other {
@@ -2064,7 +2067,7 @@
     width: 100%; font-family: inherit;
   }
   .batch-new input[type=number] { font-family: 'Orbitron', sans-serif; font-weight: 700; text-align: center; letter-spacing: 1px; }
-  .batch-new input[type=date] { color-scheme: dark; }
+  .batch-new input[type=date] { color-scheme: var(--scheme); }
   .batch-new input:focus, .batch-new select:focus, .batch-new textarea:focus {
     border-color: var(--teal-1); box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.15);
   }
