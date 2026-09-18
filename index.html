@@ -815,8 +815,16 @@
   }
 
   .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  /* Safari 的 date 欄位固有寬度很大又不會自己收縮，不鎖住會把整張表單撐破手機畫面 */
-  .field input[type=date] { width: 100%; min-width: 0; max-width: 100%; }
+  /* iOS Safari 的原生 date 控制項會依當地日期字串決定自身寬度、且無視 width，
+     必須關掉原生外觀才會遵守容器寬度，否則整張表單會被撐破手機畫面 */
+  input[type=date] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    text-align: left;   /* iOS 原生會置中，關掉外觀後對齊其他欄位 */
+  }
   .field.full { grid-column: 1 / -1; }
   .field label {
     font-size: 12px;
