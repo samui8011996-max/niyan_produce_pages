@@ -814,7 +814,9 @@
     font-weight: 700;
   }
 
-  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  /* Safari 的 date 欄位固有寬度很大又不會自己收縮，不鎖住會把整張表單撐破手機畫面 */
+  .field input[type=date] { width: 100%; min-width: 0; max-width: 100%; }
   .field.full { grid-column: 1 / -1; }
   .field label {
     font-size: 12px;
@@ -1017,6 +1019,62 @@
     box-shadow: 0 0 6px rgba(255,255,255,0.6);
   }
 
+  /* 顏色下拉選單（色點保留） */
+  .color-select { position: relative; min-width: 0; }
+  .cs-trigger {
+    width: 100%;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 12px 14px;
+    font-size: 15px; font-family: inherit;
+    border-radius: 4px; cursor: pointer; outline: none;
+    transition: border-color 0.2s;
+    text-align: left;
+  }
+  .cs-trigger:hover, .color-select.open .cs-trigger { border-color: var(--teal-1); }
+  .cs-caret { margin-left: auto; color: var(--text-mute); font-size: 12px; flex-shrink: 0; }
+  .color-select.open .cs-caret { transform: rotate(180deg); }
+  .cs-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cs-placeholder { color: var(--text-mute); }
+  .cs-swatch {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    flex-shrink: 0;
+    box-shadow: 0 0 4px rgba(var(--shadow-rgb), 0.35);
+  }
+  .cs-panel {
+    display: none;
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+    z-index: 60;
+    background: var(--bg-1);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.45);
+    max-height: 300px; overflow-y: auto;
+    padding: 4px;
+  }
+  .color-select.open .cs-panel { display: block; }
+  .cs-option {
+    width: 100%;
+    display: flex; align-items: center; gap: 10px;
+    background: transparent; border: none;
+    color: var(--text);
+    padding: 10px 10px;
+    font-size: 15px; font-family: inherit;
+    border-radius: 3px; cursor: pointer; text-align: left;
+  }
+  .cs-option:hover { background: rgba(var(--accent-rgb), 0.12); }
+  .cs-option.active { background: rgba(var(--accent-rgb), 0.18); color: var(--teal-2); font-weight: 700; }
+  .cs-option .chip-del { margin-left: auto; }
+  .cs-option.cs-add {
+    color: var(--text-dim);
+    border-top: 1px dashed var(--line);
+    border-radius: 0 0 3px 3px;
+    margin-top: 4px;
+  }
+
   /* 看板卡片上的顏色色塊 */
   .item-color-swatch {
     display: inline-block;
@@ -1031,8 +1089,8 @@
     border-color: rgba(255,255,255,0.4);
   }
 
-  .due-row { display: flex; gap: 10px; align-items: center; }
-  .due-row input[type=date] { flex: 1; }
+  .due-row { display: flex; gap: 10px; align-items: center; min-width: 0; }
+  .due-row input[type=date] { flex: 1 1 auto; min-width: 0; }
   .due-row .chip { padding: 12px 18px; }
 
   .actions {
@@ -1963,7 +2021,7 @@
   .batch-field input[type=date] {
     background: var(--bg-0); border: 1px solid var(--line); color: var(--text);
     padding: 10px 14px; font-size: 16px; border-radius: 4px; outline: none; color-scheme: var(--scheme);
-    width: 100%; min-width: 0;
+    width: 100%; min-width: 0; max-width: 100%;
   }
   #batch-person-other {
     background: var(--bg-0); border: 1px solid var(--line); color: var(--text);
@@ -2073,7 +2131,7 @@
   }
   .batch-new textarea { resize: vertical; min-height: 40px; line-height: 1.5; }
   .batch-new .item-select-row { display: flex; gap: 8px; align-items: center; }
-  .batch-new .item-select-row select { flex: 1; }
+  .batch-new .item-select-row select { flex: 1; min-width: 0; }
   .batch-new-actions { display: flex; gap: 10px; justify-content: flex-end; }
   .batch-new-pending-label { font-size: 12px; letter-spacing: 2px; color: var(--text-dim); font-weight: 700; display: block; margin-bottom: 8px; }
   .bn-init-row { display: flex; gap: 10px; }
@@ -2310,7 +2368,7 @@
 
     <div class="field full">
       <label>顏色</label>
-      <div class="chip-group" id="color-chips"></div>
+      <div class="color-select" id="color-select"></div>
     </div>
 
     <div class="field full">
@@ -3595,16 +3653,7 @@ function renderFormOptions() {
     state.customStyles.map(v => chipHtml(v, 'style', true)).join('') +
     `<button type="button" class="chip add-new" data-add="style">+ 新增</button>`;
 
-  // 顏色：內建有色塊、自訂用灰底圓圈、可新增
-  const builtinColorHtml = COLORS.map(c =>
-    `<button type="button" class="chip color-chip" data-field="color" data-value="${c}"><span class="swatch" style="background:${COLOR_HEX[c]}"></span>${c}</button>`
-  ).join('');
-  const customColorHtml = state.customColors.map(c =>
-    `<button type="button" class="chip color-chip is-custom" data-field="color" data-value="${escapeHtml(c)}"><span class="swatch" style="background:linear-gradient(135deg,#6b7a82,#3d4d56)"></span>${escapeHtml(c)}<span class="chip-del" data-del-type="color" data-del-value="${escapeHtml(c)}" title="刪除">✕</span></button>`
-  ).join('');
-  document.getElementById('color-chips').innerHTML =
-    builtinColorHtml + customColorHtml +
-    `<button type="button" class="chip add-new" data-add="color">+ 新增</button>`;
+  renderColorSelect();
 
   // 大小
   document.getElementById('size-chips').innerHTML =
@@ -3704,9 +3753,7 @@ function updateChipActive() {
   document.querySelectorAll('#style-chips .chip').forEach(c => {
     c.classList.toggle('active', c.dataset.value === state.selectedStyle);
   });
-  document.querySelectorAll('#color-chips .chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.value === state.selectedColor);
-  });
+  renderColorSelect();
   document.querySelectorAll('#size-chips .chip').forEach(c => {
     c.classList.toggle('active', c.dataset.value === state.selectedSize);
   });
@@ -3714,6 +3761,57 @@ function updateChipActive() {
     c.classList.toggle('active', c.dataset.urgent === String(state.isUrgent));
   });
 }
+
+/* ====== 顏色下拉選單（取代原本一整排色票，色點保留）====== */
+function colorSwatchHtml(v) {
+  const bg = COLOR_HEX[v] || 'linear-gradient(135deg,#6b7a82,#3d4d56)';
+  return `<span class="cs-swatch" style="background:${bg}"></span>`;
+}
+
+function renderColorSelect() {
+  const wrap = document.getElementById('color-select');
+  if (!wrap) return;
+  const sel = state.selectedColor;
+  const wasOpen = wrap.classList.contains('open');
+  const opt = (v, custom) => `
+    <button type="button" class="cs-option ${v === sel ? 'active' : ''}" data-cs-value="${escapeHtml(v)}">
+      ${colorSwatchHtml(v)}<span class="cs-label">${escapeHtml(v)}</span>
+      ${custom ? `<span class="chip-del" data-del-type="color" data-del-value="${escapeHtml(v)}" title="刪除">✕</span>` : ''}
+    </button>`;
+  wrap.innerHTML = `
+    <button type="button" class="cs-trigger" data-cs-toggle>
+      ${sel ? colorSwatchHtml(sel) + `<span class="cs-label">${escapeHtml(sel)}</span>`
+            : '<span class="cs-label cs-placeholder">— 選擇顏色 —</span>'}
+      <span class="cs-caret">▾</span>
+    </button>
+    <div class="cs-panel">
+      <button type="button" class="cs-option ${!sel ? 'active' : ''}" data-cs-value="">
+        <span class="cs-label cs-placeholder">— 不指定 —</span>
+      </button>
+      ${COLORS.map(c => opt(c, false)).join('')}
+      ${state.customColors.map(c => opt(c, true)).join('')}
+      <button type="button" class="cs-option cs-add chip" data-add="color">＋ 新增顏色</button>
+    </div>`;
+  if (wasOpen) wrap.classList.add('open');
+}
+
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('color-select');
+  if (!wrap) return;
+  if (e.target.closest('.chip-del')) return;           // 刪除鈕由既有流程處理
+  if (e.target.closest('[data-cs-toggle]')) {
+    wrap.classList.toggle('open');
+    return;
+  }
+  const opt = e.target.closest('.cs-option[data-cs-value]');
+  if (opt) {
+    state.selectedColor = opt.dataset.csValue;
+    wrap.classList.remove('open');
+    renderColorSelect();
+    return;
+  }
+  if (!e.target.closest('#color-select')) wrap.classList.remove('open');
+});
 
 function selectChip(field, value) {
   // 同一個選項再按一次 = 取消（因為非必填）
