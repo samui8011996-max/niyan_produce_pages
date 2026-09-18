@@ -2480,11 +2480,11 @@
           <tr>
             <th class="check-col"><input type="checkbox" id="check-all" onchange="toggleAllHistory(this.checked)"></th>
             <th>下單日期</th>
-            <th>狀態</th>
             <th>品項</th>
             <th>顏色</th>
             <th>款式</th>
             <th>大小</th>
+            <th>狀態</th>
             <th>廠商</th>
             <th class="num">下單</th>
             <th class="num">完成</th>
@@ -3305,6 +3305,10 @@ enriched.map(({ o, made, ground, washed, scrap, isDone, doneDate, status, status
       <tr class="${classes}">
         <td class="check-col"><input type="checkbox" class="niyan-check" data-hid="${o.id}" ${checked} onchange="toggleHistorySelect('${o.id}', this.checked)"></td>
         <td>${fmtDate(o.orderDate)}</td>
+        <td>${escapeHtml(o.item || '-')}</td>
+        <td>${colorCell}</td>
+        <td>${escapeHtml(o.style || '-')}</td>
+        <td>${escapeHtml(o.size || '-')}</td>
         <td class="status">
   ${status}
   ${isLocalHidden ? `<button onclick="restoreOrder('${o.id}')"
@@ -3314,10 +3318,6 @@ enriched.map(({ o, made, ground, washed, scrap, isDone, doneDate, status, status
     恢復
   </button>` : ''}
 </td>
-        <td>${escapeHtml(o.item || '-')}</td>
-        <td>${colorCell}</td>
-        <td>${escapeHtml(o.style || '-')}</td>
-        <td>${escapeHtml(o.size || '-')}</td>
         <td>${escapeHtml(o.vendor || '-')}</td>
         <td class="num">${o.quantity}</td>
         <td class="num">${made}</td>
