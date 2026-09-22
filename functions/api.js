@@ -54,13 +54,13 @@ async function handle(DB, action, p) {
   switch (action) {
     case 'getAll':          return getAll(DB);
     case 'addOrder':        return addOrder(DB, p);
-    case 'addOrderQty':     return addOrderQty(DB, p);
-    case 'setOrderDone':    return setOrderDone(DB, p);
+    case 'addOrderQty':     await assertNotArchived(DB, p.id);      return addOrderQty(DB, p);
+    case 'setOrderDone':    await assertNotArchived(DB, p.id);      return setOrderDone(DB, p);
     case 'setOrderHidden':  return setOrderHidden(DB, p);
     case 'purgeOrders':     return purgeOrders(DB, p);
-    case 'addMakeLog':      return addLog(DB, 'mfg_records', '完成日期', '製作師傅', p);
-    case 'addGrindLog':     return addLog(DB, 'grind_records', '研磨日期', '研磨人員', p);
-    case 'addWashLog':      return addLog(DB, 'wash_records', '清洗日期', '清洗人員', p);
+    case 'addMakeLog':      await assertNotArchived(DB, p.orderId); return addLog(DB, 'mfg_records', '完成日期', '製作師傅', p);
+    case 'addGrindLog':     await assertNotArchived(DB, p.orderId); return addLog(DB, 'grind_records', '研磨日期', '研磨人員', p);
+    case 'addWashLog':      await assertNotArchived(DB, p.orderId); return addLog(DB, 'wash_records', '清洗日期', '清洗人員', p);
     case 'deleteMakeLog':   return deleteLog(DB, 'mfg_records', p);
     case 'deleteGrindLog':  return deleteLog(DB, 'grind_records', p);
     case 'deleteWashLog':   return deleteLog(DB, 'wash_records', p);
@@ -68,6 +68,13 @@ async function handle(DB, action, p) {
     case 'deleteOption':    return deleteOption(DB, p);
     default: throw new Error('unknown action: ' + action);
   }
+}
+
+// 封存的訂單只能看、不能改（前端也會擋，這裡是後端保險）
+async function assertNotArchived(DB, orderId) {
+  if (!orderId) return;
+  const row = await DB.prepare('SELECT "已封存" a FROM orders WHERE "ID"=?').bind(orderId).first();
+  if (row && row.a === '是') throw new Error('此訂單已封存，無法編輯');
 }
 
 /* ---------- 讀取 ---------- */
@@ -96,6 +103,7 @@ async function getAll(DB) {
     done: text2bool(o['已完成']),
     doneDate: o['完成日期'] || '',
     hidden: text2bool(o['已隱藏']),
+    archived: text2bool(o['已封存']),
   }));
 
   const mapLog = (dateCol, personCol) => (r) => ({

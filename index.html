@@ -1550,6 +1550,11 @@
   .history-table tr.is-done td.status { color: var(--done); font-weight: 700; }
   .history-table tr.is-urgent td.status { color: var(--urgent); font-weight: 700; }
   .history-table tr.is-hidden td { opacity: 0.55; }
+  .history-table tr.is-archived td { opacity: 0.7; }
+  .history-table tr.is-archived td.status {
+    color: var(--text-dim); font-weight: 700; letter-spacing: 1px;
+  }
+  .hl-status.is-archived { background: var(--text-dim); color: var(--bg-0); }
   .history-table td.empty-cell {
     text-align: center;
     padding: 40px;
@@ -3283,7 +3288,8 @@ function renderHistory() {
     }
     const isLocalHidden = !!o.hidden;
 let status = '進行中', statusKey = 'is-ongoing';
-if (isLocalHidden) { status = '已隱藏'; statusKey = 'is-hidden'; }
+if (o.archived) { status = '已封存'; statusKey = 'is-archived'; }
+else if (isLocalHidden) { status = '已隱藏'; statusKey = 'is-hidden'; }
     else if (isDone) { status = '已完成'; statusKey = 'is-done'; }
     else if (o.urgent) { status = '急單'; statusKey = 'is-urgent'; }
     return { o, made, ground, washed, scrap, isDone, doneDate, status, statusKey, isLocalHidden };
@@ -4169,8 +4175,10 @@ async function submitOrder(e) {
    Modal：填入完成 / 清洗
 ================================================ */
 function openModal(orderId) {
-  const o = state.orders.find(x => x.id === orderId);
+  const o = state.orders.find(x => x.id === orderId)
+         || (state._allOrders || []).find(x => x.id === orderId);
   if (!o) return;
+  if (o.archived) { toast('此訂單已封存，僅供查看', 'error'); return; }
   state.currentOrderId = orderId;
   state.modalTab = 'make';
   state.selectedPerson = '';
@@ -4696,7 +4704,7 @@ function renderBatchRows() {
   if (!wrap) return;
   const q = (document.getElementById('batch-filter')?.value || '').trim().toLowerCase();
 
-  const all = (state._allOrders || state.orders).filter(o => !isDone_(o));
+  const all = (state._allOrders || state.orders).filter(o => !isDone_(o) && !o.archived);
   const visible = all.filter(o => !o.hidden);
   const hidden  = all.filter(o => o.hidden);
   const orderedIds = orderedActiveIds_(visible);
@@ -5202,7 +5210,8 @@ async function restoreOrder(id) {
 
 // 依伺服器同步下來的「已隱藏」欄位重算看板要顯示的訂單(所有人共用)
 function applyHiddenFilter() {
-  state.orders = (state._allOrders || []).filter(o => !o.hidden);
+  // 封存的訂單不上看板（歷史紀錄仍看得到）
+  state.orders = (state._allOrders || []).filter(o => !o.hidden && !o.archived);
 }
 
 
