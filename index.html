@@ -177,6 +177,8 @@
     box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
   }
   .qty-append-btn { flex-shrink: 0; padding: 10px 24px !important; letter-spacing: 3px !important; }
+  .qty-set-row { margin-top: 8px; }
+  .qty-set-btn { flex-shrink: 0; padding: 10px 18px !important; letter-spacing: 2px !important; }
   * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
   html, body { height: 100%; min-height: 100dvh; }
   body {
@@ -2606,6 +2608,10 @@
         <input type="number" id="m-append-qty" min="1" placeholder="輸入追加數量" inputmode="numeric" oninput="updateAppendPreview()">
         <button type="button" class="btn btn-primary qty-append-btn" onclick="submitAppendQty()">追加</button>
       </div>
+      <div class="qty-append-row qty-set-row">
+        <input type="number" id="m-set-qty" min="1" placeholder="直接改為…" inputmode="numeric" oninput="updateSetPreview()">
+        <button type="button" class="btn btn-secondary qty-set-btn" onclick="submitSetQty()">改數量</button>
+      </div>
       <div class="qty-append-log" id="qty-append-log"></div>
     </div>
    <div class="tab-row">
@@ -4199,6 +4205,8 @@ function openModal(orderId) {
   const mScrap = document.getElementById('m-scrap');
   if (mScrap) mScrap.value = '';
   document.getElementById('m-append-qty').value = '';
+  const mSetQty = document.getElementById('m-set-qty');
+  if (mSetQty) mSetQty.value = '';
   updateAppendPreview();
   renderAppendLog(orderId);
   updateModalDoneBtn();
@@ -4216,7 +4224,7 @@ function openModal(orderId) {
   }, { passive: true });
 
   // 數字框聚焦時捲到中間，按鈕才不會被鍵盤蓋住
-  ['m-quantity', 'm-append-qty'].forEach(id => {
+  ['m-quantity', 'm-append-qty', 'm-set-qty'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('focus', () => {
       setTimeout(() => el.scrollIntoView({ block: 'center' }), 300);
@@ -4306,6 +4314,60 @@ function updateAppendPreview() {
   el.innerHTML = `目前 ${current} 件 <span class="arrow">→</span> <span class="new-total">${current + delta}</span> 件`;
 }
 
+function updateSetPreview() {
+  const el = document.getElementById('m-append-current');
+  if (!el) return;
+  const o = state.orders.find(x => x.id === state.currentOrderId) || (state._allOrders || []).find(x => x.id === state.currentOrderId);
+  if (!o) { el.textContent = '目前 — 件'; return; }
+  const current = Number(o.quantity) || 0;
+  const input = document.getElementById('m-set-qty');
+  const v = input ? Number(input.value) : NaN;
+  if (!input || input.value === '' || isNaN(v)) { el.textContent = `目前 ${current} 件`; return; }
+  el.innerHTML = `目前 ${current} 件 <span class="arrow">→</span> <span class="new-total">${v}</span> 件`;
+}
+
+// 直接把下單數量改成指定值（打錯時修正用）
+async function submitSetQty() {
+  const orderId = state.currentOrderId;
+  if (!orderId) return;
+  const o = state.orders.find(x => x.id === orderId) || (state._allOrders || []).find(x => x.id === orderId);
+  if (!o) return;
+
+  const input = document.getElementById('m-set-qty');
+  const next = Math.floor(Number(input.value));
+  if (input.value === '' || isNaN(next) || next < 1) return toast('請輸入要改成的數量（至少 1）', 'error');
+
+  const current = Number(o.quantity) || 0;
+  if (next === current) { input.value = ''; updateSetPreview(); return toast('數量沒有變更'); }
+  if (!confirm(`將下單數量由 ${current} 件改為 ${next} 件？`)) return;
+
+  const btn = document.querySelector('.qty-set-btn');
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = '修改中...'; }
+
+  try {
+    const res = await api('setOrderQty', { id: orderId, quantity: next });
+    const newQty = (res && res.quantity != null) ? res.quantity : next;
+    o.quantity = newQty;
+    const ao = (state._allOrders || []).find(x => x.id === orderId);
+    if (ao) ao.quantity = newQty;
+    input.value = '';
+    addAppendLogEntry(orderId, newQty - current, current, newQty);
+    markTouched(orderId);
+    toast(`下單數量已改為 ${newQty} 件`);
+    renderModalSub();
+    renderModalProgress();
+    renderAppendLog(orderId);
+    updateSetPreview();
+    renderBoard();
+    renderHistory();
+  } catch (err) {
+    toast('修改失敗：' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); btn.textContent = '改數量'; }
+  }
+}
+
 /* ====== 追加紀錄（本地紀錄，不同步，只存這台裝置） ====== */
 const APPEND_LOG_KEY = 'niyan_append_logs';
 function getAppendLogs() {
@@ -4326,13 +4388,13 @@ function renderAppendLog(orderId) {
   if (!el) return;
   const logs = getAppendLogs()[orderId] || [];
   if (logs.length === 0) {
-    el.innerHTML = '<div class="append-log-empty">// 尚無追加紀錄</div>';
+    el.innerHTML = '<div class="append-log-empty">// 尚無數量異動紀錄</div>';
     return;
   }
   el.innerHTML = logs.map(l => `
     <div class="append-log-row">
       <span>${l.date}</span>
-      <span class="amt">+${l.delta}</span>
+      <span class="amt">${l.delta > 0 ? "+" : ""}${l.delta}</span>
       <span>${l.before} → ${l.after} 件</span>
     </div>
   `).join('');

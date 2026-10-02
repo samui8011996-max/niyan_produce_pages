@@ -55,6 +55,7 @@ async function handle(DB, action, p) {
     case 'getAll':          return getAll(DB);
     case 'addOrder':        return addOrder(DB, p);
     case 'addOrderQty':     await assertNotArchived(DB, p.id);      return addOrderQty(DB, p);
+    case 'setOrderQty':     await assertNotArchived(DB, p.id);      return setOrderQty(DB, p);
     case 'setOrderDone':    await assertNotArchived(DB, p.id);      return setOrderDone(DB, p);
     case 'setOrderHidden':  return setOrderHidden(DB, p);
     case 'purgeOrders':     return purgeOrders(DB, p);
@@ -150,6 +151,13 @@ async function addOrder(DB, p) {
 async function addOrderQty(DB, p) {
   const row = await DB.prepare('SELECT "數量" q FROM orders WHERE "ID"=?').bind(p.id).first();
   const quantity = (row ? Number(row.q) || 0 : 0) + (Number(p.delta) || 0);
+  await DB.prepare('UPDATE orders SET "數量"=? WHERE "ID"=?').bind(quantity, p.id).run();
+  return { quantity };
+}
+// 直接把訂單數量改成指定值（打錯時用，追加請用 addOrderQty）
+async function setOrderQty(DB, p) {
+  const quantity = Math.floor(Number(p.quantity));
+  if (!Number.isFinite(quantity) || quantity < 1) throw new Error('數量必須是 1 以上的整數');
   await DB.prepare('UPDATE orders SET "數量"=? WHERE "ID"=?').bind(quantity, p.id).run();
   return { quantity };
 }
